@@ -29,6 +29,7 @@ const config = {
 exports.qurey = async (input) => {
   try {
     await sql.connect(config)
+    let out =[];
     const result = await sql.query(input).then((v) => {
         // console.log(`---------------`);
         // console.log(v);  
