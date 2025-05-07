@@ -124,6 +124,9 @@ router.post('/RAWDATA/Getinstrument', async (req, res) => {
     }else  if (input['PLANT'] === "BP12PVD") {
       let findDB = await mongodbBP12PVD.find("master_FN", "INSTRUMENTS", {});
       output = findDB;
+    }else  if (input['PLANT'] === "BP12PAL") {
+      let findDB = await mongodbBP12PH.find("master_FN", "INSTRUMENTS", {});
+      output = findDB;
     }
 
   }
@@ -143,6 +146,10 @@ router.post('/RAWDATA/Getitems', async (req, res) => {
   let output = [];
   if (input['PLANT'] != undefined) {
     if (input['PLANT'] = "BP12PH") {
+      let findDB = await mongodbBP12PH.find("master_FN", "INSTRUMENTS", {});
+      output = findDB;
+    }
+    if (input['PLANT'] = "BP12PAL") {
       let findDB = await mongodbBP12PH.find("master_FN", "INSTRUMENTS", {});
       output = findDB;
     }
@@ -198,6 +205,12 @@ router.post('/RAWDATA/Getitemslist', async (req, res) => {
   let ITEMMASTER = [];
   if (input['PLANT'] != undefined && input['CP'] != undefined && input['PCDATA'] != undefined&& input['PCDATAL'] != undefined) {
     if (input['PLANT'] = "BP12PH") {
+      let findDB = await mongodbBP12PH.find("PATTERN", "PATTERN_01", {"CP":`${input['CP']}`});
+      buff01 = findDB;
+      let findDB2 = await mongodbBP12PH.find(`${input['PCDATA']}`, "ITEMs", {});
+      ITEMMASTER = findDB2;
+    }
+    if (input['PLANT'] = "BP12PAL") {
       let findDB = await mongodbBP12PH.find("PATTERN", "PATTERN_01", {"CP":`${input['CP']}`});
       buff01 = findDB;
       let findDB2 = await mongodbBP12PH.find(`${input['PCDATA']}`, "ITEMs", {});
