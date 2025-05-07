@@ -12,6 +12,9 @@ var mongodbHESISN = require('../../function/mongodbHESISN');
 var mongodbHESPAL = require('../../function/mongodbHESPAL');
 var mongodbHESPH = require('../../function/mongodbHESPH');
 
+var mongodbBP12KNG = require('../../function/mongodbBP12KNG');
+var mongodbBP12PVD = require('../../function/mongodbBP12PVD');
+
 var httpreq = require('../../function/axios');
 var axios = require('axios');
 
@@ -115,6 +118,12 @@ router.post('/RAWDATA/Getinstrument', async (req, res) => {
     }else  if (input['PLANT'] === "HESPH") {
       let findDB = await mongodbHESPH.find("master_FN", "INSTRUMENTS", {});
       output = findDB;
+    }else  if (input['PLANT'] === "BP12KNG") {
+      let findDB = await mongodbBP12KNG.find("master_FN", "INSTRUMENTS", {});
+      output = findDB;
+    }else  if (input['PLANT'] === "BP12PVD") {
+      let findDB = await mongodbBP12PVD.find("master_FN", "INSTRUMENTS", {});
+      output = findDB;
     }
 
   }
@@ -159,6 +168,14 @@ router.post('/RAWDATA/Getitems', async (req, res) => {
     }
     if (input['PLANT'] === "HESPH") {
       let findDB = await mongodbHESPH.find("master_FN", "INSTRUMENTS", {});
+      output = findDB;
+    }
+    if (input['PLANT'] === "BP12KNG") {
+      let findDB = await mongodbBP12KNG.find("master_FN", "INSTRUMENTS", {});
+      output = findDB;
+    }
+    if (input['PLANT'] === "BP12PVD") {
+      let findDB = await mongodbBP12PVD.find("master_FN", "INSTRUMENTS", {});
       output = findDB;
     }
 
@@ -220,6 +237,20 @@ router.post('/RAWDATA/Getitemslist', async (req, res) => {
       let findDB = await mongodbHESPH.find("PATTERN", "PATTERN_01",  {"CP":`${input['CP']}`});
       buff01 = findDB;
       let findDB2 = await mongodbHESPH.find(`${input['PCDATA']}`, "ITEMs", {});
+      ITEMMASTER = findDB2;
+    }
+
+    if (input['PLANT'] = "BP12KNG") {
+      let findDB = await mongodbBP12KNG.find("PATTERN", "PATTERN_01",  {"CP":`${input['CP']}`});
+      buff01 = findDB;
+      let findDB2 = await mongodbBP12KNG.find(`${input['PCDATA']}`, "ITEMs", {});
+      ITEMMASTER = findDB2;
+    }
+
+    if (input['PLANT'] = "BP12PVD") {
+      let findDB = await mongodbBP12PVD.find("PATTERN", "PATTERN_01",  {"CP":`${input['CP']}`});
+      buff01 = findDB;
+      let findDB2 = await mongodbBP12PVD.find(`${input['PCDATA']}`, "ITEMs", {});
       ITEMMASTER = findDB2;
     }
 
