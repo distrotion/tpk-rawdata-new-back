@@ -1,57 +1,55 @@
 const express = require("express");
 const router = express.Router();
-var mssql = require('./../../function/mssql');
-var mongodb = require('./../../function/mongodb');
-var httpreq = require('./../../function/axios');
-var axios = require('axios');
+const mssql = require('./../../function/mssql');
+const mssqlR = require('./../../function/mssqlR');
+const mongodb = require('./../../function/mongodb');
+const httpreq = require('./../../function/axios');
+const axios = require('axios');
 
 
 router.get('/testflow', async (req, res) => {
-  // console.log(mssql.qurey())
-  console.log(req.body);
-  var output = await mssql.qurey(`SELECT * From [test].[dbo].[Table01]`);
+  let output = await mssql.qurey(`SELECT * From [test].[dbo].[Table01]`);
   res.json(output);
-})
+});
 
 router.post('/login', async (req, res) => {
-  //-------------------------------------
-  console.log(req.body);
-  //-------------------------------------
-  input = req.body;  //<--------------------------
-  output = {}
-  if (input.user == "arsa") {
-    if (input.password == '1234') {
+  // [FIX] CRITICAL: เพิ่ม let ให้ตัวแปร ป้องกัน implicit global variable
+  let input = req.body;
+  let output = {};
+
+  if (input.user === "arsa") {
+    if (input.password === '1234') {
       output.Status = 'ok';
       output.Roleid = 5;
       output.Name = 'Arsa';
     } else {
       output.Status = 'nok';
     }
-
   } else {
     output.Status = 'nok';
   }
 
-  // msg.payload = output; //<--------------------------
-  //-------------------------------------
   res.json(output);
 });
 
 router.post('/logindb', async (req, res) => {
-  //-------------------------------------
-  console.log(req.body);
-  input = req.body;
-  output = {}
-  //-------------------------------------
-  var db = await mssql.qurey(`SELECT * From [test].[dbo].[Table01] where [user]='${input.user}'`);
-  if (db === `er`) {
+  // [FIX] CRITICAL: เพิ่ม let ให้ตัวแปร ป้องกัน implicit global variable
+  let input = req.body;
+  let output = {};
+
+  // [FIX] CRITICAL: SQL Injection — เปลี่ยนจาก string interpolation เป็น parameterized query
+  // เดิม: `SELECT * ... where [user]='${input.user}'` — อันตรายมาก
+  let db = await mssqlR.qureyRParam(
+    `SELECT * From [test].[dbo].[Table01] where [user]=@user`,
+    { user: input.user }
+  );
+
+  if (db.error) {
     output.Status = 'nok';
-    res.json(output);
+    return res.json(output);
   }
 
-  console.log(db.recordset);
-
-  if (db.recordset.length > 0) {
+  if (db.recordset && db.recordset.length > 0) {
     if (input.user === db.recordset[0].user) {
       if (input.password === db.recordset[0].password) {
         output.Status = 'ok';
@@ -66,94 +64,80 @@ router.post('/logindb', async (req, res) => {
   } else {
     output.Status = 'nok';
   }
-  console.log(output);
+
   return res.json(output);
 });
 
 
-
 router.get('/mongotest', async (req, res) => {
-
-  // var output = await mongodb.insertMany("test","doc01",[{"data":2,"test":"haha"}]);
-  // var output = await mongodb.find("test","doc01",{"data":2});
-  var upd = await mongodb.update("test", "doc01", { "data": 2 }, { $set: { b: 777 } });
-  var output = await mongodb.find("test", "doc01", { "data": 2 });
-  return res.json(output)
-})
+  await mongodb.update("test", "doc01", { "data": 2 }, { $set: { b: 777 } });
+  let output = await mongodb.find("test", "doc01", { "data": 2 });
+  return res.json(output);
+});
 
 router.get('/testreq', async (req, res) => {
-
-  data = { "test": "haha" }
-  var output = await httpreq.post('http://127.0.0.1:7510/testpost', data)
-  // var output = await httpreq.get('http://127.0.0.1:7510/testpost')
-  return res.send(output)
-})
+  // [FIX] เพิ่ม let ให้ตัวแปร
+  let data = { "test": "haha" };
+  let output = await httpreq.post('http://127.0.0.1:7510/testpost', data);
+  return res.send(output);
+});
 
 
 function test(x) {
-
-  x++
-
-  return x
+  x++;
+  return x;
 }
 
 router.get('/fntest', async (req, res) => {
-  out = test(1)
-  console.log(out)
-  console.log(out2)
-  res.send(`${out}`)
-})
+  // [FIX] เพิ่ม let ให้ตัวแปร
+  let out = test(1);
+  console.log(out);
+  // [FIX] ERROR: ลบ console.log(out2) — ตัวแปร out2 ไม่มีการประกาศ จะ throw ReferenceError
+  res.send(`${out}`);
+});
 
 router.get('/fntest2', async (req, res) => {
-  out = test(2)
-  console.log(out)
-  res.send(`${out}`)
-})
+  // [FIX] เพิ่ม let ให้ตัวแปร
+  let out = test(2);
+  console.log(out);
+  res.send(`${out}`);
+});
 
 router.get('/posthttptest', async (req, res) => {
-  output = '';
-   request.post(
-        'http://172.101.1.19/API_QcReport/ZBAPI_getZPPIN013_OUT',
-        { json: input },
-         function  (error, response, body) {
-            if (!error && response.statusCode == 200) {
-                // console.log(body2);
-                // if (body2 === 'OK') {
-                     output = body;
-                // }
-            }
-        }
+  // [FIX] RACE CONDITION: เดิมส่ง res.send() ทันทีก่อน callback ทำงานเสร็จ
+  // แก้โดยใช้ axios ซึ่งรองรับ async/await ได้โดยตรง
+  try {
+    let resp = await axios.post(
+      'http://172.101.1.19/API_QcReport/ZBAPI_getZPPIN013_OUT',
+      {}
     );
-  return res.send(`${output}`)
+    return res.send(`${resp.data}`);
+  } catch (err) {
+    console.error('[posthttptest] Error:', err.message);
+    return res.status(500).json({ error: 'Request failed' });
+  }
 });
 
 
 router.get('/postaxiostest', async (req, res) => {
-  output = '';
   try {
     let resp = await axios.post('http://172.101.1.19/API_QcReport/ZBAPI_getZPPIN013_OUT', {
-      "IMP_PRCTR":"24000",
-      "IMP_WERKS":"2100",
-      "LAST_DATE":"01-01-2022",
-      "LAST_TIME":"15:30:10"
+      "IMP_PRCTR": "24000",
+      "IMP_WERKS": "2100",
+      "LAST_DATE": "01-01-2022",
+      "LAST_TIME": "15:30:10"
     });
-    // return resp.data;
-    console.log(resp.data);
-    if (resp.status == 200) {
 
-      var ret = resp.data.replace(`\"`, '"');
-      output = ret;
+    let output = '';
+    if (resp.status === 200) {
+      output = resp.data.replace(`\"`, '"');
     }
-    // console.log(resp.data)
+    return res.send(`${output}`);
   } catch (err) {
-    throw getError(err);
+    // [FIX] ERROR: เดิมใช้ throw getError(err) — getError ไม่ได้นิยามไว้ จะ crash
+    console.error('[postaxiostest] Error:', err.message);
+    return res.status(500).json({ error: 'Request failed' });
   }
-  return res.send(`${output}`)
-})
+});
 
 module.exports = router;
-
-//`SELECT * From [test].[dbo].[Table01]`
-
-
-

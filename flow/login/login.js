@@ -30,13 +30,12 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
     //-------------------------------------
-    console.log(req.body);
+    // [FIX] SECURITY: ลบ console.log(req.body) — อาจ print password ออกมา log
     let input = req.body;
     //-------------------------------------
     let output = {"return":'NOK'}
     let findDB = await mongodb.find(Auth,user,{"ID":input['ID']});
-    console.log(findDB['PASS']);
-    console.log(input['PASS']);
+    // [FIX] SECURITY: ลบ console.log password — ห้าม log ข้อมูล credential ทุกกรณี
     if(findDB.length > 0){
 
         if(findDB[0]['PASS'] === input['PASS']){

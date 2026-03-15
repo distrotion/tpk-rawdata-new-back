@@ -1,47 +1,41 @@
+require('dotenv').config();
 const sql = require('mssql');
+
+// [FIX] CRITICAL: credentials ย้ายมาจาก .env แทนการ hardcode
 const config = {
-  user: "sa",
-  password: "Automatic",
+  user: process.env.MSSQL_USER,
+  password: process.env.MSSQL_PASSWORD,
   database: "",
-  server: '172.23.10.51',
+  server: process.env.MSSQL_SERVER,
   pool: {
-    // max: 10,
-    // min: 0,
+    max: 10,  // [FIX] PERF: เปิด connection pool ป้องกัน connection exhaustion
+    min: 2,
     idleTimeoutMillis: 30000
   },
   options: {
-    encrypt: false, // for azure
-    trustServerCertificate: true, // change to true for local dev / self-signed certs
+    encrypt: false,
+    trustServerCertificate: true,
   }
-}
+};
 
-// exports.qurey = async (input) => {
-//   try {
-//     await sql.connect(config)
-//     const result = await sql.query(input)
-//     //  console.dir(result)
-//     return result;
-//   } catch (err) {
-//     return "err";
-//   }
-// };
+// [FIX] PERF: Singleton pool — สร้างครั้งเดียว ใช้ซ้ำทุก query แทนการ connect/close ทุกครั้ง
+let pool = null;
+
+const getPool = async () => {
+  if (!pool) {
+    pool = await sql.connect(config);
+  }
+  return pool;
+};
 
 exports.qurey = async (input) => {
   try {
-    await sql.connect(config)
-    let out =[];
-    const result = await sql.query(input).then((v) => {
-        // console.log(`---------------`);
-        // console.log(v);  
-        out = v;   
-        // console.log(`---------------`);
-        return v;
-      
-      }).then(() => sql.close())
-    
-      //  console.dir(result)
-      return out;
+    const db = await getPool();
+    const result = await db.request().query(input);
+    return result;
   } catch (err) {
-    return err;
+    // [FIX] SECURITY: log error ฝั่ง server เท่านั้น ไม่ส่ง error object ออกไป
+    console.error('[mssql] Query error:', err.message);
+    return { error: 'Database query failed', recordset: [], recordsets: [[]] };
   }
 };
