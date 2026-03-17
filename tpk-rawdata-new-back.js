@@ -18,8 +18,10 @@ app.use(cors(corsOptions));
 // [FIX] CRITICAL: ตอบ preflight OPTIONS ทุก route โดยอัตโนมัติ
 app.options('*', cors(corsOptions));
 
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+// [FIX] เพิ่ม limit เป็น 50mb เพราะ /RAWDATA/insertdata ส่ง Base64 image (Picture field)
+// Base64 ขนาด 10MP photo ≈ 15-20mb → 10mb ไม่พอ
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 app.use("/", require("./api"))
 
